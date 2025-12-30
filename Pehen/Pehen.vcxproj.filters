@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="engine.h" />
+    <ClInclude Include="instance.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="logging.h" />
+    <ClInclude Include="device.h" />
+    <ClInclude Include="swapchain.h" />
+    <ClInclude Include="pipeline.h" />
+    <ClInclude Include="framebuffer.h" />
+    <ClInclude Include="commands.h" />
+    <ClInclude Include="sync.h" />
+    <ClInclude Include="app.h" />
+    <ClInclude Include="scene.h" />
+    <ClInclude Include="mesh.h" />
+    <ClInclude Include="triangle_mesh.h" />
+    <ClInclude Include="vertex_menagerie.h" />
+    <ClInclude Include="stb_image.h">
+      <Filter>vkImage</Filter>
+    </ClInclude>
+    <ClInclude Include="image.h">
+      <Filter>vkImage</Filter>
+    </ClInclude>
+    <ClInclude Include="single_time_commands.h">
+      <Filter>vkUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="frame.h">
+      <Filter>vkUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="memory.h">
+      <Filter>vkUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="queue_families.h">
+      <Filter>vkUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="render_structs.h">
+      <Filter>vkUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders.h">
+      <Filter>vkUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="descriptor.h">
+      <Filter>vkInit</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="engine.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="app.cpp" />
+    <ClCompile Include="scene.cpp" />
+    <ClCompile Include="triangle_mesh.cpp" />
+    <ClCompile Include="vertex_menagerie.cpp" />
+    <ClCompile Include="image.cpp">
+      <Filter>vkImage</Filter>
+    </ClCompile>
+    <ClCompile Include="logging.cpp" />
+    <ClCompile Include="single_time_commands.cpp">
+      <Filter>vkUtil</Filter>
+    </ClCompile>
+    <ClCompile Include="memory.cpp">
+      <Filter>vkUtil</Filter>
+    </ClCompile>
+    <ClCompile Include="descriptor.cpp">
+      <Filter>vkInit</Filter>
+    </ClCompile>
+    <ClCompile Include="frame.cpp">
+      <Filter>vkUtil</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{c603642c-ce76-4b9c-b247-86464e80761e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vkImage">
+      <UniqueIdentifier>{aec63272-15dc-48c0-b5d6-ae4688105e48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vkUtil">
+      <UniqueIdentifier>{aea8c098-eadd-4418-8592-0a9744635f6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vkInit">
+      <UniqueIdentifier>{e5ba6bd3-30d9-471b-9b92-474eef86dede}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="vertex.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="fragment.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shadercommand.bat">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ImportanError.txt" />
+  </ItemGroup>
+</Project>
