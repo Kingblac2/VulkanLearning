@@ -39,7 +39,7 @@ vk::DescriptorSetLayout vkInit::make_descriptor_set_layout(vk::Device device, co
 		{
 			vk::DescriptorPoolSize poolSize;
 			poolSize.type = bindings.types[i];
-			poolSize.descriptorCount = 10;
+			poolSize.descriptorCount = size;
 			poolSizes.push_back(poolSize);
 		}
 
