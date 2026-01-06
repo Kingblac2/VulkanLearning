@@ -279,7 +279,7 @@ void Engine::make_assets()
 void Engine::prepare_frame(uint32_t imageIndex, Scene* scene)
 {
 
-	vkUtil::SwapChainFrame _frame = swapchainFrames[imageIndex];
+	vkUtil::SwapChainFrame& _frame = swapchainFrames[imageIndex];
 
 	glm::vec3 eye = {1.0f, 0.0f, -1.0f};
 	glm::vec3 center = { 0.0f, 0.0f,0.0f };
