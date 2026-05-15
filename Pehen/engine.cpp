@@ -125,13 +125,18 @@ void Engine::make_descriptor_set_layouts()
 	frameSetLayout = vkInit::make_descriptor_set_layout(device, bindings);
 
 
+	bindings.counts.clear();
+	bindings.indices.clear();
+	bindings.stages.clear();
+	bindings.types.clear();
+
 	bindings.count = 1;
 	
 	//binding 2
-	bindings.indices[0] = (0);
-	bindings.types[0]   = (vk::DescriptorType::eCombinedImageSampler);
-	bindings.counts[0]  = (1);
-	bindings.stages[0]  = (vk::ShaderStageFlagBits::eFragment);
+	bindings.indices.push_back(0);
+	bindings.types.push_back(vk::DescriptorType::eCombinedImageSampler);
+	bindings.counts.push_back(1);
+	bindings.stages.push_back(vk::ShaderStageFlagBits::eFragment);
 
 	
 
@@ -340,7 +345,7 @@ void Engine::finalize_setup() {
 	make_frame_resource();
 }
 
-void Engine::record_draw_commands(vk::CommandBuffer commandBuffer, uint32_t imageIndex, Scene* scene)
+void Engine::record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, Scene* scene)
 {
 	vk::CommandBufferBeginInfo beginInfo = {};
 
@@ -421,9 +426,12 @@ void Engine::render_objects(vk::CommandBuffer commandBuffer, meshTypes objectTyp
 
 void Engine::render(Scene* scene)
 {
-	device.waitForFences(1, &swapchainFrames[currentframeNumber].inFlight, VK_TRUE, UINT64_MAX);
-	device.resetFences(1, &(swapchainFrames[currentframeNumber].inFlight));
+	vk::Result v1 =	device.waitForFences(1, &swapchainFrames[currentframeNumber].inFlight, VK_TRUE, UINT64_MAX);
+	vk::Result v2 = device.resetFences(1, &(swapchainFrames[currentframeNumber].inFlight));
 	
+	if (v1 != vk::Result::eSuccess && v2 != vk::Result::eSuccess)
+		__halt();
+
 	uint32_t imageIndex;
 	try {
 		vk::ResultValue acquire = device.acquireNextImageKHR(swapchain, UINT64_MAX, swapchainFrames[currentframeNumber].imageAvailable, nullptr);
@@ -445,7 +453,7 @@ void Engine::render(Scene* scene)
 	
 
 
-	vk::CommandBuffer commandBuffer = swapchainFrames[currentframeNumber].commandBuffer;
+	vk::CommandBuffer& commandBuffer = swapchainFrames[currentframeNumber].commandBuffer;
 
 	commandBuffer.reset();
 

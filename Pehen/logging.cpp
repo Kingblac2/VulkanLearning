@@ -2,6 +2,7 @@
 
 namespace vkLogging {
 	Logger* Logger::logger;
+    FILE* fptr;
 }
 
 void vkLogging::Logger::set_debug_mode(bool mode) {
@@ -61,6 +62,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vkInit::debugCallback(
 ) {
     std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
+     fopen_s(&vkLogging::fptr,"ValidationError.txt", "a");
+    if (vkLogging::fptr == NULL)
+    {
+        printf("Could not open file");
+        return 0;
+    }
+
+    fprintf(vkLogging::fptr, "%s\n", pCallbackData->pMessage);
+
+    fclose(vkLogging::fptr);
 
     return VK_FALSE;
 }

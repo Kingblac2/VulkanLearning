@@ -48,7 +48,7 @@ namespace vkInit {
 		}
 	}
 
-	vk::AttachmentDescription make_depth_attachment(vk::Format depthFormat)
+	vk::AttachmentDescription make_depth_attachment(vk::Format& depthFormat)
 	{
 		vk::AttachmentDescription depthAttachment = {};
 		depthAttachment.flags = vk::AttachmentDescriptionFlags();

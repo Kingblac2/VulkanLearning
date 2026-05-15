@@ -89,6 +89,8 @@ namespace vkUtil {
 			writeInfo2.pBufferInfo = &modelBufferDescriptor;
 
 			logicalDevice.updateDescriptorSets(writeInfo2, nullptr);
+
+			
 		}
 
 		void SwapChainFrame::destroy() {

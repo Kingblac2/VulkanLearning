@@ -1,12 +1,12 @@
 #version 450
 
-layout(binding = 0) uniform UBO {
+layout(set = 0, binding = 0) uniform UBO {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
 } cameraData;
 
-layout(std140, binding = 1) readonly buffer storageBuffer{
+layout(std140,set = 0, binding = 1) readonly buffer storageBuffer{
 	mat4 model[];
 } ObjectData;
 

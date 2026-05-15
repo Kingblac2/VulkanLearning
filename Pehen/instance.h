@@ -143,10 +143,11 @@ namespace vkInit{
 		vk::ValidationFeaturesEXT validationFeatures = {};
 		{
 			validationFeatures.sType = vk::StructureType::eValidationFeaturesEXT;
-			validationFeatures.enabledValidationFeatureCount = 1;
+			validationFeatures.enabledValidationFeatureCount = 3;
 			vk::ValidationFeatureEnableEXT enables[] = {
 				vk::ValidationFeatureEnableEXT::eGpuAssisted,
-				vk::ValidationFeatureEnableEXT::eGpuAssistedReserveBindingSlot
+				vk::ValidationFeatureEnableEXT::eGpuAssistedReserveBindingSlot,
+				vk::ValidationFeatureEnableEXT::eSynchronizationValidation
 			};
 			validationFeatures.pEnabledValidationFeatures = enables;
 		}

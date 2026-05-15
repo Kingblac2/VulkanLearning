@@ -88,7 +88,7 @@ private:
 
 	void prepare_scene(vk::CommandBuffer commandBuffer);
 	void prepare_frame(uint32_t imageIndex, Scene* scene);
-	void record_draw_commands(vk::CommandBuffer commandBuffer, uint32_t imageIndex,Scene* scene);
+	void record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t imageIndex,Scene* scene);
 	void render_objects(vk::CommandBuffer commandBuffer, meshTypes objectType, uint32_t& stratInstance, uint32_t instanceCount);
 
 

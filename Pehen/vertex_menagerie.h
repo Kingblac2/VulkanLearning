@@ -26,6 +26,6 @@ private:
 	int indexOffset;
 	vk::Device logicalDevice;
 	std::vector<float> vertexlump;
-	std::vector<float> indexlump;
+	std::vector<uint32_t> indexlump;
 
 };
