@@ -17,7 +17,7 @@ VertexMenagerie::~VertexMenagerie()
 void VertexMenagerie::consume(meshTypes type, std::vector<float> vertexData, std::vector<uint32_t> indexData)
 {
 	
-	int vertexCount = static_cast<int>(vertexData.size() / 7);
+	int vertexCount = static_cast<int>(vertexData.size() / 11);
 	int indexCount  = static_cast<int>(indexData.size());
 	int lastIndex   = static_cast<int>(indexlump.size());
 

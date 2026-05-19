@@ -8,6 +8,7 @@
 #include "commands.h"
 #include "sync.h"
 #include "descriptor.h"
+#include "obj_mesh.h"
 
 Engine::Engine(int width, int height, GLFWwindow* window, bool debugMode) : width(width),height(height),window(window),debugMode(debugMode)
 {
@@ -191,61 +192,27 @@ void Engine::make_frame_resource () {
 void Engine::make_assets()
 {
 	meshes = new VertexMenagerie();
+	std::unordered_map<meshTypes, std::vector<const char*>> model_filenames = {
+		{meshTypes::ZELDA,{"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\models\\zelda export.obj", "D:\\Graphic Programming\\Vulkan Learning\\Pehen\\models\\zelda export.mtl"}}
+	};
 
-	
-	std::vector<float> vertices = { {
-		 0.0f, -0.1f, 1.0f, 1.0f, 1.0f, 0.5f, 0.0f, // 0
-		 0.1f,  0.1f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, // 1
-		-0.1f,  0.1f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f //  2
-	} };
+	glm::mat4 preTransform =
+		glm::rotate(glm::mat4(1.0f),
+			glm::radians(90.0f),
+			glm::vec3(1.0f, 0.0f, 0.0f))   // upright
 
-	std::vector<uint32_t> indices = { {
-			0,1,2
-	} };	
+		* glm::rotate(glm::mat4(1.0f),
+			glm::radians(-90.0f),
+			glm::vec3(0.0f, 1.0f, 0.0f))   // face camera
 
-	meshTypes type = meshTypes::TRIAGLE;
-	meshes->consume(type, vertices, indices);
+		* glm::scale(glm::mat4(1.0f),
+			glm::vec3(5.0f));
+	for (std::pair<meshTypes, std::vector<const char*>> pair : model_filenames)
+	{
+		vkMesh::ObjMesh model(pair.second[0], pair.second[1],preTransform);
+		meshes->consume(pair.first,model.vertices, model.indices);
+	}
 
-	vertices = { {
-		-0.1f,  0.1f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, // 0
-		-0.1f, -0.1f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // 1
-		 0.1f, -0.1f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // 2
-		 0.1f,  0.1f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f	// 3
-	} };
-
-	indices = { {
-		0,1,2,
-		2,3,0
-	} };	
-
-	type = meshTypes::SQUARE;
-	meshes->consume(type, vertices, indices);
-
-	vertices = { {
-			 -0.1f, -0.05f, 1.0f, 1.0f, 1.0f, 0.0f, 0.25f, //0
-			-0.04f, -0.05f, 1.0f, 1.0f, 1.0f, 0.3f, 0.25f, //1
-			-0.06f,   0.0f, 1.0f, 1.0f, 1.0f, 0.2f,  0.5f, //2
-			  0.0f,  -0.1f, 1.0f, 1.0f, 1.0f, 0.5f,  0.0f, //3
-			 0.04f, -0.05f, 1.0f, 1.0f, 1.0f, 0.7f, 0.25f, //4
-			  0.1f, -0.05f, 1.0f, 1.0f, 1.0f, 1.0f, 0.25f, //5
-			 0.06f,   0.0f, 1.0f, 1.0f, 1.0f, 0.8f,  0.5f, //6
-			 0.08f,   0.1f, 1.0f, 1.0f, 1.0f, 0.9f,  1.0f, //7
-			  0.0f,  0.02f, 1.0f, 1.0f, 1.0f, 0.5f,  0.6f, //8
-			-0.08f,   0.1f, 1.0f, 1.0f, 1.0f, 0.1f,  1.0f  //9
-		} };
-
-	indices = { {
-				0, 1, 2,
-				1, 3, 4,
-				2, 1, 4,
-				4, 5, 6,
-				2, 4, 6,
-				6, 7, 8,
-				2, 6, 8,
-				2, 8, 9
-		} };
-	type = meshTypes::STAR;
-	meshes->consume(type, vertices, indices);
 
 	FinializationChunk finalizationChunk;
 	finalizationChunk.logicalDevice = device;
@@ -256,10 +223,8 @@ void Engine::make_assets()
 
 	//Materials
 	std::unordered_map<meshTypes, const char*> filenames = {
-		{meshTypes::TRIAGLE ,"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\Mitaka.jpg"},
-		{meshTypes::SQUARE ,"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\Makima.jpg"},
-		{meshTypes::STAR  , "D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\Elf.jpg" }
-	};
+		{meshTypes::ZELDA ,"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\white.jpg"},
+};
 
 	//Make a descriptor pool
 	//...
@@ -286,14 +251,14 @@ void Engine::prepare_frame(uint32_t imageIndex, Scene* scene)
 
 	vkUtil::SwapChainFrame& _frame = swapchainFrames[imageIndex];
 
-	glm::vec3 eye = {1.0f, 0.0f, -1.0f};
-	glm::vec3 center = { 0.0f, 0.0f,0.0f };
-	glm::vec3 up  = { 0.0f, 0.0f,-1.0f };
+	glm::vec3 eye = {0.0f, 0.0f, 1.0f};
+	glm::vec3 center = { 1.0f, 0.0f,1.0f };
+	glm::vec3 up  = { 0.0f, 0.0f,1.0f };
 	glm::mat4 view = glm::lookAt(eye,center,up);
 
 
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapchianExtent.width) / static_cast<float>(swapchianExtent.height) ,
-		0.1f, 10.0f); 
+		0.1f, 100.0f); 
 	
 	projection[1][1] *= -1;
 
@@ -305,20 +270,16 @@ void Engine::prepare_frame(uint32_t imageIndex, Scene* scene)
 		&(_frame.cameraData),
 		sizeof(vkUtil::UBO));
 
+	
 
 	size_t i = 0;
-	for (glm::vec3& postion : scene->trianglePositions)
-	{
-		_frame.modelTransforms[i++] = glm::translate(glm::mat4(1.0f), postion);
+	for (std::pair<meshTypes, std::vector<glm::vec3>> pair : scene->positions) {
+		for (glm::vec3& postion : pair.second)
+		{
+			_frame.modelTransforms[i++] = glm::translate(glm::mat4(1.0f), postion);
+		}
 	}
-	for (glm::vec3& postion : scene->squarePositions)
-	{
-		_frame.modelTransforms[i++] = glm::translate(glm::mat4(1.0f), postion);
-	}
-	for (glm::vec3& postion : scene->starPositions)
-	{
-		_frame.modelTransforms[i++] = glm::translate(glm::mat4(1.0f), postion);
-	}
+	
 
 	memcpy(_frame.modelBufferWriteLocation, _frame.modelTransforms.data(), i * sizeof(glm::mat4));
 
@@ -383,19 +344,12 @@ void Engine::record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t ima
 	prepare_scene(commandBuffer);
 
 	uint32_t startInstance = 0;
+	for (std::pair<meshTypes, std::vector<glm::vec3>> pair : scene->positions) {
 		render_objects(
-		commandBuffer, meshTypes::TRIAGLE, startInstance, static_cast<uint32_t>(scene->trianglePositions.size())
-	);
+			commandBuffer, pair.first, startInstance, static_cast<uint32_t>(pair.second.size())
+		);
+	}
 
-	//Squares
-	render_objects(
-		commandBuffer, meshTypes::SQUARE, startInstance, static_cast<uint32_t>(scene->squarePositions.size())
-	);
-
-	//Stars
-	render_objects(
-		commandBuffer, meshTypes::STAR, startInstance, static_cast<uint32_t>(scene->starPositions.size())
-	);
 
 
 	commandBuffer.endRenderPass();

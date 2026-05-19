@@ -43,6 +43,9 @@
     <ClInclude Include="descriptor.h">
       <Filter>vkInit</Filter>
     </ClInclude>
+    <ClInclude Include="obj_mesh.h">
+      <Filter>vkMesh</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine.cpp" />
@@ -67,6 +70,10 @@
     <ClCompile Include="frame.cpp">
       <Filter>vkUtil</Filter>
     </ClCompile>
+    <ClCompile Include="config.cpp" />
+    <ClCompile Include="obj_mesh.cpp">
+      <Filter>vkMesh</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -80,6 +87,9 @@
     </Filter>
     <Filter Include="vkInit">
       <UniqueIdentifier>{e5ba6bd3-30d9-471b-9b92-474eef86dede}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vkMesh">
+      <UniqueIdentifier>{98fbc639-be8e-4927-8e3d-7639f15a313f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

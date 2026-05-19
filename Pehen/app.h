@@ -2,6 +2,7 @@
 #include "config.h"
 #include "engine.h"
 #include "scene.h"
+#include<sstream>
 class App {
 
 private:

@@ -169,7 +169,7 @@ namespace vkInit {
 
 		//Vertex Input
 		vk::VertexInputBindingDescription bindingDescription = vkMesh::getPosColorBindingDescription();
-		std::array<vk::VertexInputAttributeDescription, 3> attributeDescription = vkMesh::getPosColorAttributeDescriptions();
+		std::array<vk::VertexInputAttributeDescription, 4> attributeDescription = vkMesh::getPosColorAttributeDescriptions();
 		vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.flags = vk::PipelineVertexInputStateCreateFlags();
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -225,7 +225,7 @@ namespace vkInit {
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = vk::PolygonMode::eFill;
 		rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-		rasterizer.frontFace = vk::FrontFace::eClockwise;
+		rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.lineWidth = 1.0f; // Daksh New Changes
 		pipelineInfo.pRasterizationState = &rasterizer;
