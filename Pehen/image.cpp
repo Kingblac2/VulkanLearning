@@ -6,162 +6,15 @@
 #include "descriptor.h"
 #include "single_time_commands.h"
 
-vkImage::Texture::Texture(TextureInputChunk info)
-{
-	logicalDevice = info.logicalDevice;
-	physicalDevice = info.physicalDevice;
-	filename = info.filename;
-	commandBuffer = info.commandBuffer;
-	queue = info.queue;
-	layout = info.layout;
-	descriptorPool = info.descriptorPool;
-
-	load();
-
-	ImageInputChunk imageInput;
-	imageInput.logicalDevice = logicalDevice;
-	imageInput.physicalDevice = physicalDevice;
-	imageInput.height = height;
-	imageInput.width = width;
-	imageInput.format = vk::Format::eR8G8B8A8Unorm;
-	imageInput.tiling = vk::ImageTiling::eOptimal;
-	imageInput.usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled ;
-	imageInput.memoryProperties = vk::MemoryPropertyFlagBits::eDeviceLocal;
-	image = make_image(imageInput);
-	imageMemory = make_image_memory(imageInput, image);
-
-	populate();
-
-	free(pixels);
-
-	make_view();
-
-	make_sampler();
-
-	make_descriptor_set();
-}
-
-vkImage::Texture::~Texture()
-{
-	logicalDevice.freeMemory(imageMemory);
-	logicalDevice.destroyImage(image);
-	logicalDevice.destroyImageView(imageView);
-	logicalDevice.destroySampler(sampler);
-}
-
-void vkImage::Texture::use(vk::CommandBuffer commandBuffer, vk::PipelineLayout pipelineLayout)
-{
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 1, descriptorSet, nullptr);
-
-}
-
-void vkImage::Texture::load()
-{
-	pixels = ::stbi_load(filename, &width, &height, &channels, STBI_rgb_alpha);
-	if (!pixels) {
-		vkLogging::Logger::get_logger()->print_list({ "Failed to load: ", filename,stbi_failure_reason()});
-	}
-}
-
-void vkImage::Texture::populate() {
-
-	vkUtil::BufferInput input;
-	input.logicalDevice = logicalDevice;
-	input.physicalDevice = physicalDevice;
-	input.memoryProperties = vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible;
-	input.usage = vk::BufferUsageFlagBits::eTransferSrc;
-	input.size = width * height * 4;
-	vkUtil::Buffer stagingBuffer = vkUtil::createBuffer(input);
-
-	void* writeLocation = logicalDevice.mapMemory(stagingBuffer.bufferMemory, 0, input.size);
-	memcpy(writeLocation, pixels, input.size);
-	logicalDevice.unmapMemory(stagingBuffer.bufferMemory);
-
-	ImageLayoutTranstionJob transtionJob;
-	transtionJob.commandBuffer = commandBuffer;
-	transtionJob.queue = queue;
-	transtionJob.image = image;
-	transtionJob.oldLayout = vk::ImageLayout::eUndefined;
-	transtionJob.newLayout = vk::ImageLayout::eTransferDstOptimal;
-	transition_image_layout(transtionJob);
-
-	BufferImageCopyJob copyJob;
-	copyJob.commandBuffer = commandBuffer;
-	copyJob.queue = queue;
-	copyJob.srcBuffer = stagingBuffer.buffer;
-	copyJob.dstImage = image;
-	copyJob.width = width;
-	copyJob.height = height;
-	copy_buffer_to_image(copyJob);
-
-	transtionJob.oldLayout = vk::ImageLayout::eTransferDstOptimal;
-	transtionJob.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	transition_image_layout(transtionJob);
-
-	logicalDevice.freeMemory(stagingBuffer.bufferMemory);
-	logicalDevice.destroyBuffer(stagingBuffer.buffer);
-}
-
-void vkImage::Texture::make_view()
-{
-	imageView = make_image_view(logicalDevice, image, vk::Format::eR8G8B8A8Unorm,vk::ImageAspectFlagBits::eColor);
-}
-
-void vkImage::Texture::make_sampler(){
-	vk::SamplerCreateInfo samplerInfo;
-	samplerInfo.flags = vk::SamplerCreateFlags();
-	samplerInfo.minFilter = vk::Filter::eNearest;
-	samplerInfo.magFilter = vk::Filter::eLinear;
-	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-	samplerInfo.anisotropyEnable = false;
-	samplerInfo.maxAnisotropy = 1.0f;
-	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	samplerInfo.unnormalizedCoordinates = false;
-	samplerInfo.compareEnable = false;
-	samplerInfo.compareOp = vk::CompareOp::eAlways;
-	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
-	samplerInfo.mipLodBias = 0.0f;
-	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = 0.0f;
-
-	try {
-		sampler = logicalDevice.createSampler(samplerInfo);
-	}
-	catch (vk::SystemError err) {
-		vkLogging::Logger::get_logger()->print("Failed to make sampler.");
-	}
-}
-
-void vkImage::Texture::make_descriptor_set() {
-
-	descriptorSet = vkInit::allocate_descriptor_Set(logicalDevice, descriptorPool, layout);
-
-	vk::DescriptorImageInfo imageDescriptor;
-	imageDescriptor.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	imageDescriptor.imageView = imageView;
-	imageDescriptor.sampler = sampler;
-
-	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite.dstSet = descriptorSet;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pImageInfo = &imageDescriptor;
-
-	logicalDevice.updateDescriptorSets(descriptorWrite, nullptr);
-}
 
 vk::Image vkImage::make_image(ImageInputChunk input) {
 
 	vk::ImageCreateInfo imageInfo;
-	imageInfo.flags = vk::ImageCreateFlagBits();
+	imageInfo.flags = vk::ImageCreateFlagBits() | input.flags;
 	imageInfo.imageType = vk::ImageType::e2D;
 	imageInfo.extent = vk::Extent3D(input.width, input.height, 1);
 	imageInfo.mipLevels = 1;
-	imageInfo.arrayLayers = 1;
+	imageInfo.arrayLayers = input.arrayCount;
 	imageInfo.format = input.format;
 	imageInfo.tiling = input.tiling;
 	imageInfo.initialLayout = vk::ImageLayout::eUndefined;
@@ -209,7 +62,7 @@ void vkImage::transition_image_layout(ImageLayoutTranstionJob job) {
 	access.baseMipLevel = 0;
 	access.levelCount = 1;
 	access.baseArrayLayer = 0;
-	access.layerCount = 1;
+	access.layerCount = job.arrayCount;
 
 	vk::ImageMemoryBarrier barrier;
 	barrier.oldLayout = job.oldLayout;
@@ -253,7 +106,7 @@ void vkImage::copy_buffer_to_image(BufferImageCopyJob job) {
 	access.aspectMask = vk::ImageAspectFlagBits::eColor;
 	access.mipLevel = 0;
 	access.baseArrayLayer = 0;
-	access.layerCount = 1;
+	access.layerCount = job.arrayCount;
 	copy.imageSubresource = access;
 
 	copy.imageOffset = vk::Offset3D(0,0,0);
@@ -270,12 +123,12 @@ void vkImage::copy_buffer_to_image(BufferImageCopyJob job) {
 	vkUtil::end_job(job.commandBuffer, job.queue);
 }
 
-vk::ImageView vkImage::make_image_view(vk::Device logicalDevice, vk::Image image, vk::Format format, vk::ImageAspectFlags aspect)
+vk::ImageView vkImage::make_image_view(vk::Device logicalDevice, vk::Image image, vk::Format format, vk::ImageAspectFlags aspect, vk::ImageViewType type, uint32_t arrayCount)
 {
 
 	vk::ImageViewCreateInfo createInfo = {};
 	createInfo.image = image;
-	createInfo.viewType = vk::ImageViewType::e2D;
+	createInfo.viewType = type;
 	createInfo.components.r = vk::ComponentSwizzle::eIdentity;
 	createInfo.components.g = vk::ComponentSwizzle::eIdentity;
 	createInfo.components.b = vk::ComponentSwizzle::eIdentity;
@@ -284,7 +137,7 @@ vk::ImageView vkImage::make_image_view(vk::Device logicalDevice, vk::Image image
 	createInfo.subresourceRange.baseMipLevel = 0;
 	createInfo.subresourceRange.levelCount = 1;
 	createInfo.subresourceRange.baseArrayLayer = 0;
-	createInfo.subresourceRange.layerCount = 1;
+	createInfo.subresourceRange.layerCount = arrayCount;
 	createInfo.format = format;
 
 	return  logicalDevice.createImageView(createInfo);

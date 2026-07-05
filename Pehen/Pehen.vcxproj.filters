@@ -46,6 +46,12 @@
     <ClInclude Include="obj_mesh.h">
       <Filter>vkMesh</Filter>
     </ClInclude>
+    <ClInclude Include="texture.h">
+      <Filter>vkImage</Filter>
+    </ClInclude>
+    <ClInclude Include="cubemap.h">
+      <Filter>vkImage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine.cpp" />
@@ -74,6 +80,15 @@
     <ClCompile Include="obj_mesh.cpp">
       <Filter>vkMesh</Filter>
     </ClCompile>
+    <ClCompile Include="pipeline.cpp" />
+    <ClCompile Include="mesh.cpp" />
+    <ClCompile Include="shaders.cpp" />
+    <ClCompile Include="texture.cpp">
+      <Filter>vkImage</Filter>
+    </ClCompile>
+    <ClCompile Include="cubemap.cpp">
+      <Filter>vkImage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
@@ -101,6 +116,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shadercommand.bat">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="sky_shader.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="sky_shader.vert">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

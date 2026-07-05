@@ -7,6 +7,8 @@
 #include "triangle_mesh.h"
 #include "vertex_menagerie.h"
 #include "image.h"
+#include"texture.h"
+#include "cubemap.h"
 
 class Engine {
 
@@ -45,9 +47,10 @@ private:
 	vk::Extent2D swapchianExtent;
 
 	//pipeline related variables
-	vk::PipelineLayout layout;
-	vk::RenderPass renderpass;
-	vk::Pipeline pipeline;
+	std::vector<pipelineTypes> pipelines = { {pipelineTypes::SKY, pipelineTypes::STANDARD} };
+	std::unordered_map<pipelineTypes, vk::PipelineLayout> layout;
+	std::unordered_map<pipelineTypes, vk::RenderPass> renderpass;
+	std::unordered_map<pipelineTypes,vk::Pipeline> pipeline;
 
 	//command-related variables
 	vk::CommandPool commandPool;
@@ -58,14 +61,15 @@ private:
 
 
 	//Descriptor objects
-	vk::DescriptorSetLayout frameSetLayout;
+	std::unordered_map<pipelineTypes,vk::DescriptorSetLayout> frameSetLayout;
 	vk::DescriptorPool frameDescriptorPool;
-	vk::DescriptorSetLayout meshSetLayout;	
+	std::unordered_map<pipelineTypes,vk::DescriptorSetLayout> meshSetLayout;
 	vk::DescriptorPool meshDescriptorPool;
 
 	//asset pointers
 	VertexMenagerie* meshes;
 	std::unordered_map<meshTypes, vkImage::Texture*> materials;
+	vkImage::CubeMap* cubemap;
 
 	void make_instance();
 
@@ -88,7 +92,8 @@ private:
 
 	void prepare_scene(vk::CommandBuffer commandBuffer);
 	void prepare_frame(uint32_t imageIndex, Scene* scene);
-	void record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t imageIndex,Scene* scene);
+	void record_draw_commands_sky(vk::CommandBuffer& commandBuffer, uint32_t imageIndex,Scene* scene);
+	void record_draw_commands_standard(vk::CommandBuffer& commandBuffer, uint32_t imageIndex,Scene* scene);
 	void render_objects(vk::CommandBuffer commandBuffer, meshTypes objectType, uint32_t& stratInstance, uint32_t instanceCount);
 
 

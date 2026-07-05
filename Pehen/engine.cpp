@@ -9,6 +9,7 @@
 #include "sync.h"
 #include "descriptor.h"
 #include "obj_mesh.h"
+#include "texture.h"
 
 Engine::Engine(int width, int height, GLFWwindow* window, bool debugMode) : width(width),height(height),window(window),debugMode(debugMode)
 {
@@ -110,12 +111,17 @@ void Engine::recreate_swapchain() {
 void Engine::make_descriptor_set_layouts()
 {
 	vkInit::descriptorSetLayoutData bindings;
-	bindings.count = 2;
+	bindings.count = 1;
 	//binding
 	bindings.indices.push_back(0);
 	bindings.types.push_back(vk::DescriptorType::eUniformBuffer);
 	bindings.counts.push_back(1);
 	bindings.stages.push_back(vk::ShaderStageFlagBits::eVertex);
+
+	frameSetLayout[pipelineTypes::SKY] = vkInit::make_descriptor_set_layout(device, bindings);
+
+
+	bindings.count = 2;
 	
 	//binding
 	bindings.indices.push_back(1);
@@ -123,7 +129,7 @@ void Engine::make_descriptor_set_layouts()
 	bindings.counts.push_back(1);
 	bindings.stages.push_back(vk::ShaderStageFlagBits::eVertex);
 
-	frameSetLayout = vkInit::make_descriptor_set_layout(device, bindings);
+	frameSetLayout[pipelineTypes::STANDARD] = vkInit::make_descriptor_set_layout(device, bindings);
 
 
 	bindings.counts.clear();
@@ -141,24 +147,50 @@ void Engine::make_descriptor_set_layouts()
 
 	
 
-	meshSetLayout = vkInit::make_descriptor_set_layout(device, bindings);
+	meshSetLayout[pipelineTypes::SKY] = vkInit::make_descriptor_set_layout(device, bindings);
+	meshSetLayout[pipelineTypes::STANDARD] = vkInit::make_descriptor_set_layout(device, bindings);
 }
 
 void Engine::make_pipeline()
 {
-	vkInit::GraphicsPipelineBundle specification = {};
-	specification.device = device;
-	specification.vertexFilepath = "vert.spv";
-	specification.fragmentFilepath = "frag.spv";
-	specification.swapChainExtent = swapchianExtent;
-	specification.SwapchainImageFormat = swapchianFormat;
-	specification.depthFormat = swapchainFrames[0].depthFormat;
-	specification.descriptorSetLayouts = { frameSetLayout, meshSetLayout };
+	vkInit::PipelineBuilder pipelineBuilder(device);
 
-	vkInit::GraphicsPipelineOutBundle output = vkInit::make_graphics_pipeline(specification,debugMode);
-	layout = output.layout;
-	renderpass = output.renderpass;
-	pipeline = output.pipeline;
+	pipelineBuilder.specify_overwrite(false);
+	pipelineBuilder.set_overwrite_mode(false);
+	pipelineBuilder.specify_vertex_shader("sky_vertex.spv");
+	pipelineBuilder.specify_fragment_shader("sky_fragment.spv");
+	pipelineBuilder.specify_swapchain_extent(swapchianExtent);
+	pipelineBuilder.clear_depth_attachment();
+	pipelineBuilder.add_descriptor_set_layout(frameSetLayout[pipelineTypes::SKY]);
+	pipelineBuilder.add_descriptor_set_layout(meshSetLayout[pipelineTypes::SKY]);
+	pipelineBuilder.add_color_attachment(swapchianFormat, 0);
+
+	vkInit::GraphicsPipelineOutBundle output = pipelineBuilder.build();	
+	
+	layout[pipelineTypes::SKY] = output.layout;
+	renderpass[pipelineTypes::SKY] = output.renderpass;
+	pipeline[pipelineTypes::SKY] = output.pipeline;
+
+	pipelineBuilder.reset();
+
+	pipelineBuilder.specify_overwrite(true);
+	pipelineBuilder.specify_vertex_format(
+		vkMesh::getPosColorBindingDescription(),
+		vkMesh::getPosColorAttributeDescriptions()
+	);
+	pipelineBuilder.specify_vertex_shader("vert.spv");
+	pipelineBuilder.specify_fragment_shader("frag.spv");
+	pipelineBuilder.specify_swapchain_extent(swapchianExtent);
+	pipelineBuilder.specify_depth_attachment(swapchainFrames[0].depthFormat, 1);
+	pipelineBuilder.add_descriptor_set_layout(frameSetLayout[pipelineTypes::STANDARD]);
+	pipelineBuilder.add_descriptor_set_layout(meshSetLayout[pipelineTypes::STANDARD]);
+	pipelineBuilder.add_color_attachment(swapchianFormat, 0);
+
+	output = pipelineBuilder.build();
+
+	layout[pipelineTypes::STANDARD] = output.layout;
+	renderpass[pipelineTypes::STANDARD] = output.renderpass;
+	pipeline[pipelineTypes::STANDARD] = output.pipeline;
 }
 
 void Engine::make_framebuffers() {
@@ -176,7 +208,7 @@ void Engine::make_frame_resource () {
 	bindings.count = 2;
 	bindings.types.push_back(vk::DescriptorType::eUniformBuffer);
 	bindings.types.push_back(vk::DescriptorType::eStorageBuffer);
-	frameDescriptorPool = vkInit::make_descriptor_pool(device, static_cast<uint32_t>(swapchainFrames.size()), bindings);
+	frameDescriptorPool = vkInit::make_descriptor_pool(device, static_cast<uint32_t>(swapchainFrames.size()) * 2, bindings);
 
 	for (vkUtil::SwapChainFrame& frame : swapchainFrames) {
 		frame.imageAvailable = vkInit::make_semaphore(device, debugMode);
@@ -185,7 +217,10 @@ void Engine::make_frame_resource () {
 
 		frame.make_descriptor_resources();
 
-		frame.descriptorSet = vkInit::allocate_descriptor_Set(device, frameDescriptorPool, frameSetLayout);
+		frame.descriptorSet[pipelineTypes::SKY] = vkInit::allocate_descriptor_Set(device, frameDescriptorPool, frameSetLayout[pipelineTypes::SKY]);
+		frame.descriptorSet[pipelineTypes::STANDARD] = vkInit::allocate_descriptor_Set(device, frameDescriptorPool, frameSetLayout[pipelineTypes::STANDARD]);
+		
+		frame.record_write_operations();
 	}
 }
 
@@ -222,8 +257,8 @@ void Engine::make_assets()
 	meshes->finalize(finalizationChunk);
 
 	//Materials
-	std::unordered_map<meshTypes, const char*> filenames = {
-		{meshTypes::ZELDA ,"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\white.jpg"},
+	std::unordered_map<meshTypes, std::vector<const char*>> filenames = {
+		{meshTypes::ZELDA ,{"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\white.jpg"}},
 };
 
 	//Make a descriptor pool
@@ -231,25 +266,53 @@ void Engine::make_assets()
 	vkInit::descriptorSetLayoutData bindings;
 	bindings.count = 1;
 	bindings.types.push_back(vk::DescriptorType::eCombinedImageSampler);
-	meshDescriptorPool = vkInit::make_descriptor_pool(device, static_cast<uint32_t>(filenames.size()), bindings);
+	meshDescriptorPool = vkInit::make_descriptor_pool(device, static_cast<uint32_t>(filenames.size()) + 1, bindings);
 
 	vkImage::TextureInputChunk textureInfo;
 	textureInfo.commandBuffer = mainCommandBuffer;
 	textureInfo.queue = graphicsQueue;
 	textureInfo.logicalDevice = device;
 	textureInfo.physicalDevice = physicalDevice;
-	textureInfo.layout = meshSetLayout;
+	textureInfo.layout = meshSetLayout[pipelineTypes::STANDARD];
 	textureInfo.descriptorPool = meshDescriptorPool;
 
 	for (const auto& [object, filename] : filenames) {
-		textureInfo.filename = filename;
+		textureInfo.filenames = filename;
 		materials[object] = new vkImage::Texture(textureInfo);
 	}
+
+	
+	textureInfo.layout = meshSetLayout[pipelineTypes::SKY];
+	textureInfo.filenames = { {
+			"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\front.png",
+			"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\back.png",
+			"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\left.png",
+			"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\right.png",
+			"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\down.png",
+			"D:\\Graphic Programming\\Vulkan Learning\\Pehen\\tex\\up.png",
+
+	} };
+
+	cubemap = new vkImage::CubeMap(textureInfo);
 }
 void Engine::prepare_frame(uint32_t imageIndex, Scene* scene)
 {
 
 	vkUtil::SwapChainFrame& _frame = swapchainFrames[imageIndex];
+
+	glm::vec4 cam_vec_forwards = { 1.0f, 0.0f, 0.0f,0.0f };
+	glm::vec4 cam_vec_right = { 0.0f, -1.0f,0.0f, 0.0f };
+	glm::vec4 cam_vec_up = { 0.0f, 0.0f,1.0f,0.0f };
+
+
+
+	_frame.cameraVectorData.forwards = cam_vec_forwards;
+	_frame.cameraVectorData.right = cam_vec_right;
+	_frame.cameraVectorData.up = cam_vec_up;
+	memcpy(
+		_frame.camerVectorWriteLocation,
+		&(_frame.cameraVectorData),
+		sizeof(vkUtil::CameraVectors));
 
 	glm::vec3 eye = {0.0f, 0.0f, 1.0f};
 	glm::vec3 center = { 1.0f, 0.0f,1.0f };
@@ -262,13 +325,13 @@ void Engine::prepare_frame(uint32_t imageIndex, Scene* scene)
 	
 	projection[1][1] *= -1;
 
-	_frame.cameraData.view = view;
-	_frame.cameraData.projection = projection;
-	_frame.cameraData.viewProjection = projection * view;
+	_frame.cameraMatrixData.view = view;
+	_frame.cameraMatrixData.projection = projection;
+	_frame.cameraMatrixData.viewProjection = projection * view;
 	memcpy(
-		_frame.camerDataWriteLocation, 
-		&(_frame.cameraData),
-		sizeof(vkUtil::UBO));
+		_frame.camerMatrixWriteLocation, 
+		&(_frame.cameraMatrixData),
+		sizeof(vkUtil::CameraMatrices));
 
 	
 
@@ -306,23 +369,52 @@ void Engine::finalize_setup() {
 	make_frame_resource();
 }
 
-void Engine::record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, Scene* scene)
+void Engine::record_draw_commands_sky(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, Scene* scene)
 {
-	vk::CommandBufferBeginInfo beginInfo = {};
-
-	try {
-		commandBuffer.begin(beginInfo);
-
-	}
-	catch (vk::SystemError err) {
-		if (debugMode) {
-			std::cout << "Failed to begin recording command buffer" << std::endl;
-		}
-	}
 
 	vk::RenderPassBeginInfo renderPassInfo = {};
-	renderPassInfo.renderPass = renderpass;
-	renderPassInfo.framebuffer = swapchainFrames[imageIndex].framebuffer;
+	renderPassInfo.renderPass = renderpass[pipelineTypes::SKY];
+	renderPassInfo.framebuffer = swapchainFrames[imageIndex].framebuffer[pipelineTypes::SKY];
+	renderPassInfo.renderArea.offset.x = 0;
+	renderPassInfo.renderArea.offset.y = 0;
+	renderPassInfo.renderArea.extent = swapchianExtent;
+	vk::ClearValue clearcolor = { std::array<float , 4>{1.0f,0.5f,0.25f,1.0f} };
+	
+
+	std::vector<vk::ClearValue> clearValues = { {clearcolor} };
+
+	renderPassInfo.clearValueCount = clearValues.size();
+	renderPassInfo.pClearValues = clearValues.data();
+
+	commandBuffer.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
+
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline[pipelineTypes::SKY]);
+
+	commandBuffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		layout[pipelineTypes::SKY], 0,
+		swapchainFrames[imageIndex].descriptorSet[pipelineTypes::SKY], nullptr);
+
+
+
+	cubemap->use(commandBuffer, layout[pipelineTypes::SKY]);
+
+	commandBuffer.draw(6, 1, 0, 0);
+
+	commandBuffer.endRenderPass();
+
+
+
+
+
+}
+
+void Engine::record_draw_commands_standard(vk::CommandBuffer& commandBuffer, uint32_t imageIndex, Scene* scene)
+{
+
+	vk::RenderPassBeginInfo renderPassInfo = {};
+	renderPassInfo.renderPass = renderpass[pipelineTypes::STANDARD];
+	renderPassInfo.framebuffer = swapchainFrames[imageIndex].framebuffer[pipelineTypes::STANDARD];
 	renderPassInfo.renderArea.offset.x = 0;
 	renderPassInfo.renderArea.offset.y = 0;
 	renderPassInfo.renderArea.extent = swapchianExtent;
@@ -336,10 +428,12 @@ void Engine::record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t ima
 
 	commandBuffer.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
-	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline[pipelineTypes::STANDARD]);
 
-	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-		layout, 0, swapchainFrames[imageIndex].descriptorSet, nullptr);
+	commandBuffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		layout[pipelineTypes::STANDARD], 0, 
+		swapchainFrames[imageIndex].descriptorSet[pipelineTypes::STANDARD], nullptr);
 
 	prepare_scene(commandBuffer);
 
@@ -355,25 +449,13 @@ void Engine::record_draw_commands(vk::CommandBuffer& commandBuffer, uint32_t ima
 	commandBuffer.endRenderPass();
 
 
-	// 6. End command buffer
-
-
-	try {
-		commandBuffer.end();
-	}
-	catch(vk::SystemError err){
-		if (debugMode)
-		{
-			std::cout << " Failed to Finish Recording command buffer" << std::endl;
-		}
-	}
 }
 
 void Engine::render_objects(vk::CommandBuffer commandBuffer, meshTypes objectType, uint32_t& startInstance, uint32_t instanceCount)
 {
 	int  indexCount = meshes->IndexCounts.find(objectType)->second;
 	int firstIndex = meshes->firstIndices.find(objectType)->second;
-	materials[objectType]->use(commandBuffer, layout);
+	materials[objectType]->use(commandBuffer, layout[pipelineTypes::STANDARD]);
 	commandBuffer.drawIndexed(indexCount, instanceCount, firstIndex,0, startInstance);
 	startInstance += instanceCount;
 }
@@ -413,7 +495,31 @@ void Engine::render(Scene* scene)
 
 	prepare_frame(imageIndex,scene);
 
-	record_draw_commands(commandBuffer, imageIndex, scene);
+
+	vk::CommandBufferBeginInfo beginInfo = {};
+
+	try {
+		commandBuffer.begin(beginInfo);
+
+	}
+	catch (vk::SystemError err) {
+		if (debugMode) {
+			std::cout << "Failed to begin recording command buffer" << std::endl;
+		}
+	}
+
+	record_draw_commands_sky(commandBuffer, imageIndex, scene);
+	record_draw_commands_standard(commandBuffer, imageIndex, scene);
+
+	try {
+		commandBuffer.end();
+	}
+	catch (vk::SystemError err) {
+		if (debugMode)
+		{
+			std::cout << " Failed to Finish Recording command buffer" << std::endl;
+		}
+	}
 
 	vk::SubmitInfo submitInfo = {};
 
@@ -492,21 +598,30 @@ Engine::~Engine()
 
 	device.destroyCommandPool(commandPool);
 
-	device.destroyPipeline(pipeline);
-	device.destroyPipelineLayout(layout);
-	device.destroyRenderPass(renderpass);
+	for (pipelineTypes pipeline_type : pipelines)
+	{
+		device.destroyPipeline(pipeline	   [pipeline_type]);
+		device.destroyPipelineLayout(layout[pipeline_type]);
+		device.destroyRenderPass(renderpass[pipeline_type]);
+	}
+	
+
 
 	cleanup_swapchian();
 
-	device.destroyDescriptorSetLayout(frameSetLayout);
-
+	for (pipelineTypes pipeline_type : pipelines) {
+		device.destroyDescriptorSetLayout(frameSetLayout[pipeline_type]);
+	device.destroyDescriptorSetLayout(meshSetLayout[pipeline_type]);
+	}
 	delete meshes;
 
 	for (const auto& [key,texture] : materials)
 	{
 		delete texture;
 	}
-	device.destroyDescriptorSetLayout(meshSetLayout);
+
+	delete cubemap;
+
 	device.destroyDescriptorPool(meshDescriptorPool);
 
 	device.destroy();

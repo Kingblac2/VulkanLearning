@@ -17,6 +17,11 @@ enum class meshTypes {
 	ZELDA
 };
 
+enum class pipelineTypes {
+	SKY,
+	STANDARD
+};
+
 #ifndef _DEBUG
 #define _DEBUG 0
 #endif // !_DEBUG
